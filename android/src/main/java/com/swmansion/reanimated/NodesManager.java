@@ -152,7 +152,6 @@ public class NodesManager implements EventDispatcherListener {
   }
 
   private Queue<NativeUpdateOperation> mOperationsInBatch = new LinkedList<>();
-  private boolean mTryRunBatchUpdatesSynchronously = false;
 
   public NodesManager(ReactContext context) {
     mContext = context;
@@ -217,7 +216,6 @@ public class NodesManager implements EventDispatcherListener {
     if (!mOperationsInBatch.isEmpty()) {
       final Queue<NativeUpdateOperation> copiedOperationsQueue = mOperationsInBatch;
       mOperationsInBatch = new LinkedList<>();
-      mTryRunBatchUpdatesSynchronously = false;
       mContext.runOnNativeModulesQueueThread(
           new GuardedRunnable(mContext.getExceptionHandler()) {
             @Override
@@ -416,11 +414,7 @@ public class NodesManager implements EventDispatcherListener {
     ((PropsNode) node).disconnectFromView(viewTag);
   }
 
-  public void enqueueUpdateViewOnNativeThread(
-      int viewTag, WritableMap nativeProps, boolean trySynchronously) {
-    if (trySynchronously) {
-      mTryRunBatchUpdatesSynchronously = true;
-    }
+  public void enqueueUpdateViewOnNativeThread(int viewTag, WritableMap nativeProps) {
     mOperationsInBatch.add(new NativeUpdateOperation(viewTag, nativeProps));
   }
 
@@ -570,7 +564,7 @@ public class NodesManager implements EventDispatcherListener {
             viewTag, new ReactStylesDiffMap(newUIProps));
       }
       if (hasNativeProps) {
-        enqueueUpdateViewOnNativeThread(viewTag, newNativeProps, true);
+        enqueueUpdateViewOnNativeThread(viewTag, newNativeProps);
       }
       if (hasJSProps) {
         WritableMap evt = Arguments.createMap();
